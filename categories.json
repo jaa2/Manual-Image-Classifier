@@ -1,5 +1,8 @@
 {
-    "1": "bad",
-    "2": "good",
-    "3": "excellent"
+    "categories": {
+        "1": "bad",
+        "2": "good",
+        "3": "excellent"
+    },
+    "default": ""
 }

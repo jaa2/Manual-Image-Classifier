@@ -13,13 +13,14 @@ def main():
     det_save_file = "det_save.json"
     for root, dirs, files in os.walk(folder):
         for name in files:
-            if name[-4:].lower() == ".jpg" or name[-5:].lower() == ".jpeg":
+            if (name[-4:].lower() == ".jpg" or name[-5:].lower() == ".jpeg"
+                or name.endswith(".png")):
                 file_list.append(root + "/" + name)
 
     file_list = sorted(file_list)
     cur_file = 0
     
-    categories = load_categories.load_categories()
+    categories, default_cat = load_categories.load_categories()
 
     if len(file_list) == 0:
         print("No images found!")
@@ -64,9 +65,9 @@ def main():
             font_mult = 5
             textdraw.border_text_centered(img, category_text, font_size * font_mult)
         else:
-            # Not chosen; you could set a default here if you want
-            pass
-            # seen_list[cur_file] = 0
+            # Not chosen; set the default, if one exists
+            if default_cat:
+                seen_list[cur_file] = default_cat
         return img
     
     # Set cache range parameters
