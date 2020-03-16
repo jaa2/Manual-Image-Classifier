@@ -1,5 +1,5 @@
-import cv2
 import queue
+from PIL import Image
 from multiprocessing import Process, Queue
 from . import imageops
 
@@ -86,6 +86,11 @@ class ImageLoader:
             except queue.Empty:
                 pass
     
+    """ Update the dimensions of the image.
+        @param view_dims (width, height) of new images """
+    def set_view_dims(self, view_dims):
+        self.view_dims = view_dims
+    
     """ Retrieves the next image from the done queue.
         Note that a queue.Empty exception will be thrown if the done queue is
         empty.
@@ -119,8 +124,8 @@ class ImageLoader:
     """ Load an image from the disk and letterbox it to view_dims.
         @return OpenCV image """
     def __image_load(self, filename):
-        new_image = cv2.imread(filename)
-        new_image_resized = imageops.image_letterbox(new_image,
+        new_image = Image.open(filename)
+        new_image_resized = imageops.image_resize_to_fit(new_image,
                                                      self.view_dims[0],
                                                      self.view_dims[1])
         del new_image
