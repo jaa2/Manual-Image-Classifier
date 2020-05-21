@@ -16,8 +16,11 @@ class MainApp:
         frame = Frame(master)
         frame.pack(expand=1, fill=BOTH)
         
+        self.top_label = Label(frame, text="")
+        self.top_label.pack(side=TOP)
+        
         self.photo_image = ImageTk.PhotoImage(starting_image)
-        self.image = Label(frame, text="hi", image=self.photo_image)
+        self.image = Label(frame, image=self.photo_image)
         self.image.pack(side=RIGHT, expand=1, fill=BOTH)
         
         self.controls_frame = Frame(frame)
@@ -53,6 +56,11 @@ class MainApp:
         # Update buttons
         self.update_button_colors()
     
+    def update_image_info(self, file_list):
+        global cur_file
+        self.top_label.configure(text="Image " + str(cur_file + 1) + " of "
+            + str(len(file_list)) + ": " + file_list[cur_file])
+    
     def get_image_dims(self):
         self.root.update()
         return (self.image.winfo_width(), self.image.winfo_height())
@@ -65,7 +73,8 @@ class MainApp:
                 if cur_file in seen_list:
                     # Just in case the JSON format changes
                     if not label in seen_list[cur_file]:
-                        seen_list[cur_file][label] = default_selections[label]
+                        print("SETTING DEFAULTS")
+                        seen_list[cur_file][label] = default_selections[label].copy()
                     while i >= len(seen_list[cur_file][label]):
                         seen_list[cur_file][label].append(0)
                     if seen_list[cur_file][label][i] == 1:
@@ -73,10 +82,16 @@ class MainApp:
                 button.configure(background=color)
     
     def change_button_colors(self, label, num, set_true=False):
-        exclusive = self.exclusive_label_inds[label]
         """ Changes all other colors to something else
             Exclusive: only one can be selected at a time."""
         global seen_list, cur_file, default_selections
+        exclusive = self.exclusive_label_inds[label]
+        
+        if cur_file in seen_list:
+            print("Found in seen_list:")
+            print(seen_list[cur_file])
+        else:
+            print("NOT in seen list")
         if not cur_file in seen_list and not set_true:
             # Set this one
             result = {}
@@ -92,7 +107,7 @@ class MainApp:
             self.update_button_colors()
             return
         elif set_true:
-            seen_list[cur_file][label] = default_selections[label]
+            seen_list[cur_file][label] = default_selections[label].copy()
             print("(2) Setting default of {} to {}".format(label, seen_list[cur_file][label]))
             return
         
@@ -101,11 +116,10 @@ class MainApp:
                 prev_selected = seen_list[cur_file][label][i] == 1
                 seen_list[cur_file][label][i] = 1 if i == num and not prev_selected else 0
                 print("For {}, setting {} to {}".format(label, i, seen_list[cur_file][label][i]))
-                self.update_button_colors()
         else:
             seen_list[cur_file][label][num] = 1 if seen_list[cur_file][label][num] == 0 else 0
             print("(2) For {}, setting {} to {}".format(label, num, seen_list[cur_file][label][num]))
-            self.update_button_colors()
+        self.update_button_colors()
         
         print(seen_list[cur_file])
         print(seen_list[cur_file][label])
@@ -115,15 +129,20 @@ org_img = None
 org_img_file = -1
 seen_list = {}
 default_selections = {}
+file_list = []
 
 # Cache step rate. A cache_step_rate of 50 will load every 50th image in
 # the cache range.
 cache_step_rate = 1
 
 def main(args):
-    file_list = []
-    global seen_list
+    global seen_list, file_list
     folder = args.folder
+    
+    # Normalize folder path
+    if not folder.endswith("/"):
+        folder += "/"
+    
     det_save_file = "det_save.json"
     for root, dirs, files in os.walk(folder):
         for name in files:
@@ -151,7 +170,7 @@ def main(args):
         didnotsee_list = []
         
         for f in file_list:
-            if f in file_seen_list:
+            if f[len(folder):] in file_seen_list:
                 didsee_list.append(f)
             else:
                 didnotsee_list.append(f)
@@ -161,8 +180,9 @@ def main(args):
         file_list = didsee_list + didnotsee_list
         
         for f in file_seen_list:
+            f = folder + f
             if f in file_list:
-                seen_list[file_list.index(f)] = file_seen_list[f]
+                seen_list[file_list.index(f)] = file_seen_list[f[len(folder):]]
     except FileNotFoundError:
         random.shuffle(file_list)
         pass
@@ -207,6 +227,7 @@ def main(args):
             org_img = image_loader.get_image(file_list[cur_file], cur_file)
             org_img_file = cur_file
             print("Setting image")
+            app.update_image_info(file_list)
             app.set_image(org_img)
         image_loader.update_cache(get_target_cache_fnames(cache_step_rate))
         
@@ -260,6 +281,7 @@ def main(args):
             org_img = image_loader.get_image(file_list[cur_file], cur_file)
             org_img_file = cur_file
             
+            app.update_image_info(file_list)
             app.set_image(org_img)
         image_loader.update_cache(get_target_cache_fnames(cache_step_rate))
         root.after(KEY_WAIT, cacheloop)
@@ -271,7 +293,8 @@ def main(args):
     
     named_seen_list = {}
     for seen_id in seen_list:
-      named_seen_list[file_list[seen_id]] = seen_list[seen_id]
+        # Store without the root folder
+        named_seen_list[file_list[seen_id][len(folder):]] = seen_list[seen_id]
 
     print(str(len(seen_list)) + " photo decisions saved.")
     out_file = open(det_save_file, "w")
