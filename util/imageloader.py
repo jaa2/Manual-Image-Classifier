@@ -84,7 +84,9 @@ class ImageLoader:
             try:
                 self.__image_next_from_done()
             except queue.Empty:
-                pass
+                print("The queue is empty but {} filenames are expected. Quitting anyway...".format(
+                    len(self.cache_filenames_pending)))
+                return
     
     """ Update the dimensions of the image.
         @param view_dims (width, height) of new images """
