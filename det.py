@@ -79,6 +79,16 @@ class MainApp:
                         seen_list[cur_file][label].append(0)
                     if seen_list[cur_file][label][i] == 1:
                         color = "#ee00ee"
+                elif cur_file in seen_auto_list:
+                    # TODO: FIX UP
+                    # Just in case the JSON format changes
+                    if not label in seen_auto_list[cur_file]:
+                        print("SETTING DEFAULTS")
+                        seen_auto_list[cur_file][label] = default_selections[label].copy()
+                    while i >= len(seen_auto_list[cur_file][label]):
+                        seen_auto_list[cur_file][label].append(0)
+                    if seen_auto_list[cur_file][label][i] == 1:
+                        color = "#aaaaff"
                 button.configure(background=color)
     
     def change_button_colors(self, label, num, set_true=False):
@@ -92,7 +102,11 @@ class MainApp:
             print(seen_list[cur_file])
         else:
             print("NOT in seen list")
-        if not cur_file in seen_list and not set_true:
+        
+        # Has automatic version; use that
+        if cur_file not in seen_list and cur_file in seen_auto_list:
+            seen_list[cur_file] = seen_auto_list[cur_file]
+        elif not cur_file in seen_list and not set_true:
             # Set this one
             result = {}
             result[label] = [0] * len(self.buttons[label])
@@ -128,6 +142,8 @@ cur_file = 0
 org_img = None
 org_img_file = -1
 seen_list = {}
+# Files "seen" by automatic classification
+seen_auto_list = {}
 default_selections = {}
 file_list = []
 
@@ -144,6 +160,7 @@ def main(args):
         folder += "/"
     
     det_save_file = "det_save.json"
+    det_auto_file = "det_auto_save.json"
     for root, dirs, files in os.walk(folder):
         for name in files:
             if (name[-4:].lower() == ".jpg" or name[-5:].lower() == ".jpeg"
@@ -159,6 +176,17 @@ def main(args):
     if len(file_list) == 0:
         print("No images found!")
         return
+    
+    # Files automatically matched
+    file_auto_list = []
+    # Load automatically sorted images
+    try:
+        json_file = open(det_auto_file, "r")
+        file_auto_list = json.load(json_file)
+        print("Loaded {} auto files".format(len(file_auto_list)))
+        json_file.close()
+    except FileNotFoundError:
+        pass
 
     file_seen_list = []
     try:
@@ -167,22 +195,42 @@ def main(args):
         json_file.close()
         
         didsee_list = []
+        didsee_auto_list = []
+        didnotsee_list_org = []
         didnotsee_list = []
         
+        # Find all the files already seen
         for f in file_list:
             if f[len(folder):] in file_seen_list:
                 didsee_list.append(f)
             else:
-                didnotsee_list.append(f)
+                didnotsee_list_org.append(f)
+        
+        # Find files automatically seen
+        if len(file_auto_list) > 0:
+            for f in didnotsee_list_org:
+                if f[len(folder):] in file_auto_list:
+                    didsee_auto_list.append(f)
+                else:
+                    didnotsee_list.append(f)
+        else:
+            didnotsee_list = didnotsee_list_org
+                    
         
         # Put the ones you already saw at the beginning
+        random.shuffle(didsee_auto_list)
         random.shuffle(didnotsee_list)
-        file_list = didsee_list + didnotsee_list
+        file_list = didsee_list + didsee_auto_list + didnotsee_list
         
         for f in file_seen_list:
             f = folder + f
             if f in file_list:
                 seen_list[file_list.index(f)] = file_seen_list[f[len(folder):]]
+        
+        for f in file_auto_list:
+            f = folder + f
+            if f in file_list:
+                seen_auto_list[file_list.index(f)] = file_auto_list[f[len(folder):]]
     except FileNotFoundError:
         random.shuffle(file_list)
         pass
@@ -269,6 +317,11 @@ def main(args):
         if key == "m" and len(seen_list) < len(file_list):
             while (cur_file in seen_list):
                 cur_file = get_cur_offset(cur_file, 1)
+        
+        # F key - use automatic if one exists
+        if key == "f" and cur_file in seen_auto_list and cur_file not in seen_list:
+            seen_list[cur_file] = seen_auto_list[cur_file]
+            app.update_button_colors()
         
         # Q key - quit
         if key == "q":
