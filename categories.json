@@ -1,8 +1,24 @@
 {
     "categories": {
-        "1": "bad",
-        "2": "good",
-        "3": "excellent"
-    },
-    "default": ""
+        "photo_type": {
+            "items": ["landscape", "closeup", "other"],
+            "defaults": [1, 0, 0],
+            "exclusive": true
+        },
+        "real_photo": {
+            "items": ["true", "false"],
+            "defaults": [1, 0],
+            "exclusive": true
+        },
+        "elements": {
+            "items": ["water", "waterfall", "sun", "trees", "rock", "snow", "clouds", "man-made"],
+            "defaults": [0, 0, 0, 0, 0, 0, 0, 0],
+            "exclusive": false
+        },
+        "excellence": {
+            "items": ["meh", "good", "awesome"],
+            "defaults": [1, 0, 0],
+            "exclusive": true
+        }
+    }
 }
