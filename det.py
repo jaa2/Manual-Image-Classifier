@@ -160,7 +160,7 @@ def main(args):
         folder += "/"
     
     det_save_file = "det_save.json"
-    det_auto_file = "det_auto_save.json"
+    det_auto_file = "det_save_auto.json"
     for root, dirs, files in os.walk(folder):
         for name in files:
             if (name[-4:].lower() == ".jpg" or name[-5:].lower() == ".jpeg"
